@@ -3,19 +3,42 @@
 
 #include "framework.h"
 #include "Terrain.h"
+#include "TerrainGenerator.h"
+
+#include <cstdint>
 
 #define MAX_LOADSTRING 100
 
 // Global Variables:
+int width = 1000, height = width / 2;
+
+TerrainGenerator terr = TerrainGenerator(width, height);
+
+// i dunno
 HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
+
+// Bitmap and pixel data
+HBITMAP hTerrBmp = NULL;
+int* iterations = nullptr;
+uint32_t* pixels = nullptr;
+
+// Tracking the client area size
+int clientWidth = width, clientHeight = height;
+
+// For panning
+int lastPanX = 0;
+int lastPanY = 0;
+bool isPanning = false;
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+
+void                fillTerrain(HWND);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -123,38 +146,87 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    switch (message)
-    {
-    case WM_COMMAND:
-        {
+    switch (message) {
+
+        // Handle window resizing
+        case WM_SIZE: {
+            clientWidth = LOWORD(lParam);
+            clientHeight = HIWORD(lParam);
+            InvalidateRect(hWnd, nullptr, FALSE);
+            return 0;
+        }
+        case WM_CREATE: {
+            BITMAPINFO bmi = {};
+            bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+            bmi.bmiHeader.biWidth = width;
+            bmi.bmiHeader.biHeight = -height;   // top-down
+            bmi.bmiHeader.biPlanes = 1;
+            bmi.bmiHeader.biBitCount = 32;      // BGRA
+            bmi.bmiHeader.biCompression = BI_RGB;
+
+            void* pixelBuffer = nullptr;
+
+            hTerrBmp = CreateDIBSection(
+                nullptr,
+                &bmi,
+                DIB_RGB_COLORS,
+                &pixelBuffer,
+                nullptr,
+                0
+            );
+
+            pixels = static_cast<uint32_t*>(pixelBuffer);
+            iterations = new int[width * height];
+
+			terr.generateTerrain();
+            fillTerrain(hWnd);
+            return 0;
+        }
+        break;
+
+        case WM_PAINT: {
+            PAINTSTRUCT ps;
+            HDC hdc = BeginPaint(hWnd, &ps);
+
+            HDC memDC = CreateCompatibleDC(hdc);
+            SelectObject(memDC, hTerrBmp);
+
+            SetStretchBltMode(hdc, COLORONCOLOR); 
+
+            StretchBlt(
+                hdc,
+                0, 0, clientWidth, clientHeight,   
+                memDC,
+                0, 0, width, height,             
+                SRCCOPY
+            );
+
+            DeleteDC(memDC);
+            EndPaint(hWnd, &ps);
+            return 0;
+        }
+
+        case WM_COMMAND: {
             int wmId = LOWORD(wParam);
             // Parse the menu selections:
-            switch (wmId)
-            {
-            case IDM_ABOUT:
-                DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-                break;
-            case IDM_EXIT:
-                DestroyWindow(hWnd);
-                break;
-            default:
-                return DefWindowProc(hWnd, message, wParam, lParam);
+            switch (wmId) {
+                case IDM_ABOUT:
+                    DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+                    break;
+                case IDM_EXIT:
+                    DestroyWindow(hWnd);
+                    break;
+                default:
+                    return DefWindowProc(hWnd, message, wParam, lParam);
             }
         }
         break;
-    case WM_PAINT:
-        {
-            PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(hWnd, &ps);
-            // TODO: Add any drawing code that uses hdc here...
-            EndPaint(hWnd, &ps);
-        }
-        break;
-    case WM_DESTROY:
-        PostQuitMessage(0);
-        break;
-    default:
-        return DefWindowProc(hWnd, message, wParam, lParam);
+
+        case WM_DESTROY:
+            PostQuitMessage(0);
+            break;
+        default:
+            return DefWindowProc(hWnd, message, wParam, lParam);
     }
     return 0;
 }
@@ -177,4 +249,15 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     }
     return (INT_PTR)FALSE;
+}
+
+void fillTerrain(HWND hWnd) {
+#pragma omp parallel for schedule(dynamic)
+    for (int x = 0; x < width; x++) {
+        for (int y = 0; y < height; y++) {
+			pixels[y * width + x] = terr.get(x, y);
+        }
+    }
+
+    InvalidateRect(hWnd, NULL, FALSE);
 }
