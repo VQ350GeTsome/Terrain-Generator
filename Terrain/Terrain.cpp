@@ -11,7 +11,7 @@
 #define MAX_LOADSTRING 100
 
 // Global Variables:
-const int width = 1000, height = 1000;
+const int width = 500, height = 500;
 
 TerrainGenerator terr = TerrainGenerator(width, height);
 

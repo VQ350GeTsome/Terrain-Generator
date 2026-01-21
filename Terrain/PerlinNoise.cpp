@@ -1,6 +1,5 @@
 #include "PerlinNoise.h"
 
-#include <cmath>
 #include <algorithm>
 #include <random>
 
@@ -35,39 +34,4 @@ PerlinNoise::PerlinNoise(int s) {
 	std::shuffle(p, p + 256, std::mt19937(s));
 	// Copy the new seeded permutation
 	for (int i = 0; i < 256; i++) p[256 + i] = p[i];
-}
-
-double PerlinNoise::noise(double x, double y) {
-
-	// Top Left corner coordinates, then wrapped to 256
-	// to be used as index of permutation array
-	int X = (int) floor(x) & 255, Y = (int) floor(y) & 255;
-
-	// Relative x and y in cell
-	x -= floor(x);
-	y -= floor(y);
-
-	// Fade curves for x and y
-	double u = fade(x), v = fade(y);
-
-	// Hash coordinates of the 4 square corners
-	int aa = p[p[X] + Y];
-	int ab = p[p[X] + Y + 1];
-	int ba = p[p[X + 1] + Y];
-	int bb = p[p[X + 1] + Y + 1];
-
-	// Blend results from 4 corners of the square
-	double x1 = lerp(
-					u,
-					grad(aa, x, y),
-					grad(ba, x - 1, y)
-				);
-	double x2 = lerp(
-					u,
-					grad(ab, x, y - 1),
-					grad(bb, x - 1, y - 1)
-				);
-
-	// [-1, 1]
-	return lerp(v, x1, x2);
 }

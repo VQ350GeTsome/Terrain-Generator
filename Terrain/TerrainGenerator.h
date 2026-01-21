@@ -58,7 +58,7 @@ public:
 		double s = ((color >> 24) & 0xFF) / 255.0;
 
 		// Add some variation to brightness based on hash
-		double r = hash(x, y, h + t + e);
+		double r = hash(x + ox, y + oy, h + t + e);
 		double range = 1.0 * s;
 		double b = (1 - (range / 2)) + (r * range);
 
@@ -161,8 +161,7 @@ private:
 	// Amount of octaves for fractal noise
 	int fractalOctaves = 8;
 
-	double fractal(PerlinNoise* noise, double x, double y, int times) {
-
+	inline double fractal(PerlinNoise* noise, double x, double y, int times) {
 		// Track total noise value, frequency and amplitude
 		double total = 0, frequency = 1, amplitude = 1;
 		// Used to normalize result to [0, 1]
