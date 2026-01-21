@@ -29,13 +29,12 @@ const double PerlinNoise::grad2[16][2] = {
 
 
 PerlinNoise::PerlinNoise(int s) {
-
 	// Initialize permutation vector with the reference values
-	for (int i = 0; i < 256; i++)
-		p[256 + i] = p[i] = permutation[i];
-
+	for (int i = 0; i < 256; i++) p[256 + i] = p[i] = permutation[i];
 	// Apply seed
 	std::shuffle(p, p + 256, std::mt19937(s));
+	// Copy the new seeded permutation
+	for (int i = 0; i < 256; i++) p[256 + i] = p[i];
 }
 
 double PerlinNoise::noise(double x, double y) {
@@ -58,13 +57,15 @@ double PerlinNoise::noise(double x, double y) {
 	int bb = p[p[X + 1] + Y + 1];
 
 	// Blend results from 4 corners of the square
-	double x1 = lerp(u,
-					 grad(aa, x, y),
-					 grad(ba, x - 1, y)
+	double x1 = lerp(
+					u,
+					grad(aa, x, y),
+					grad(ba, x - 1, y)
 				);
-	double x2 = lerp(u,
-					 grad(ab, x, y - 1),
-					 grad(bb, x - 1, y - 1)
+	double x2 = lerp(
+					u,
+					grad(ab, x, y - 1),
+					grad(bb, x - 1, y - 1)
 				);
 
 	// [-1, 1]

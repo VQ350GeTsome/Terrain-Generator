@@ -8,27 +8,31 @@ void TerrainGenerator::generateTerrain() {
 	elevation   = new double[w * h];
 
 	// Generate humidity
-	for (int y = 0; h > y; y++) for (int x = 0; w > x; x++) {
-
-		double sx = ((x + ox) / (humiScale / globalScale)), sy = ((y + oy) / (humiScale / globalScale));
-
-		humidity[y * w + x] = fractal(humiNoise, sx, sy, fractalOctaves);
+	#pragma omp parallel for schedule(dynamic)
+	for (int y = 0; y < h; y++) {
+		for (int x = 0; x < w; x++) {
+			double sx = ((x + ox) / (humiScale / globalScale)), sy = ((y + oy) / (humiScale / globalScale));
+			humidity[y * w + x] = fractal(humiNoise, sx, sy, fractalOctaves);
+		}
 	}
 	
 	// Generate temperature
-	for (int y = 0; h > y; y++) for (int x = 0; w > x; x++) {
-
-		double sx = ((x + ox) / (tempScale / globalScale)), sy = ((y + oy) / (tempScale / globalScale));
-
-		temperature[y * w + x] = fractal(tempNoise, sx, sy, fractalOctaves);
+	#pragma omp parallel for schedule(dynamic)
+	for (int y = 0; y < h; y++) {
+		for (int x = 0; x < w; x++) {
+			double sx = ((x + ox) / (tempScale / globalScale)), sy = ((y + oy) / (tempScale / globalScale));
+			temperature[y * w + x] = fractal(tempNoise, sx, sy, fractalOctaves);
+		}
 	}
 
 	// Generate elevation
-	for (int y = 0; h > y; y++) for (int x = 0; w > x; x++) {
+	#pragma omp parallel for schedule(dynamic)
+	for (int y = 0; y < h; y++) {
+		for (int x = 0; x < w; x++) {
+			double sx = ((x + ox) / (elevScale / globalScale)), sy = ((y + oy) / (elevScale / globalScale));
+			double continent = elevNoise->noise(sx / 8.0, sy / 8.0);
+			elevation[y * w + x] = fractal(elevNoise, sx, sy, fractalOctaves) * 0.50 + continent;
 
-		double sx = ((x + ox) / (elevScale / globalScale)), sy = ((y + oy) / (elevScale / globalScale));
-
-		double continent = elevNoise->noise(sx / 8.0, sy / 8.0);
-		elevation[y * w + x] = fractal(elevNoise, sx, sy, fractalOctaves) * 0.50 + continent;
+		}
 	}
 }

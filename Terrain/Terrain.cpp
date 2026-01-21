@@ -242,9 +242,34 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     std::string info = terr.getInfo(pt.x, pt.y);
                     MessageBoxA(hWnd, info.c_str(), "Terrain Info", MB_OK);
                 }
+                case 'R' : {
+                    fillTerrain(hWnd);
+                }
             }
         }
         break;
+
+        case WM_MOUSEMOVE: {
+            if (isPanning && (wParam & MK_MBUTTON)) {
+                POINT pt = scaleMouse(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+
+                terr.pan(lastPanX, lastPanY, pt.x, pt.y);
+                fillTerrain(hWnd);
+
+                lastPanX = pt.x;
+                lastPanY = pt.y;
+            }
+        }
+        break;
+
+        case WM_MBUTTONDOWN: {
+            POINT pt = scaleMouse(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+            lastPanX = pt.x;
+            lastPanY = pt.y;
+            isPanning = true;
+        }
+        break;
+        case WM_MBUTTONUP: isPanning = false; break;
 
         case WM_DESTROY:
             PostQuitMessage(0);
@@ -256,33 +281,32 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 }
 
 // Message handler for about box.
-INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
-{
+INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
     UNREFERENCED_PARAMETER(lParam);
-    switch (message)
-    {
-    case WM_INITDIALOG:
-        return (INT_PTR)TRUE;
-
-    case WM_COMMAND:
-        if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
-        {
-            EndDialog(hDlg, LOWORD(wParam));
+    switch (message) {
+        case WM_INITDIALOG:
             return (INT_PTR)TRUE;
+
+        case WM_COMMAND:
+            if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL) {
+                EndDialog(hDlg, LOWORD(wParam));
+                return (INT_PTR)TRUE;
+            }
+            break;
         }
-        break;
-    }
     return (INT_PTR)FALSE;
 }
 
 void fillTerrain(HWND hWnd) {
-#pragma omp parallel for schedule(dynamic)
+
+    terr.generateTerrain();
+
+    #pragma omp parallel for schedule(dynamic)
     for (int x = 0; x < width; x++) {
         for (int y = 0; y < height; y++) {
 			pixels[y * width + x] = terr.get(x, y);
         }
     }
-
     InvalidateRect(hWnd, NULL, FALSE);
 }
 

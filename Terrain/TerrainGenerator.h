@@ -44,7 +44,7 @@ public:
 	inline double getElevation(int x, int y) { return elevation[y * w + x];  }
 
 	// Gets the actual terrain color
-	inline uint32_t get(int x, int y) {
+	uint32_t get(int x, int y) {
 		// Get terrain features and normalize to [0, 1]
 		double h = getHumidity(x, y), t = getTemperature(x, y), e = getElevation(x, y);
 		h = (h + 1) / 2;
@@ -65,7 +65,7 @@ public:
 		return scale(color, b);
 	}
 	// Use the gradient to get color based on elevation
-	inline uint32_t getGradient(int x, int y) {
+	uint32_t getGradient(int x, int y) {
 		double h = getHumidity(x, y), t = getTemperature(x, y), e = getElevation(x, y);
 		h = (h + 1) / 2;
 		t = (t + 1) / 2;
@@ -90,7 +90,7 @@ public:
 		return (0xFF << 24) | (r << 16) | (g << 8) | b;
 	}
 	// Simple RGB encoding of terrain features, humidity->R, temperature->G, elevation->B
-	inline uint32_t getRGB(int x, int y) {
+	uint32_t getRGB(int x, int y) {
 		double h = getHumidity(x, y), t = getTemperature(x, y), e = getElevation(x, y);
 
 		int r = static_cast<uint8_t>(255 * h);
@@ -100,19 +100,33 @@ public:
 	}
 
 	// Get info string about terrain features at given coordinates
-	inline std::string getInfo(int x, int y) {
+	std::string getInfo(int x, int y) {
 		// Get terrain features and normalize to [0, 1]
 		double h = getHumidity(x, y), t = getTemperature(x, y), e = getElevation(x, y);
 		h = (h + 1) / 2;
 		t = (t + 1) / 2;
 		e = (e + 1) / 2;
 
-		std::string info = "Coordinates:\t(" + std::to_string(x + ox) + ", " + std::to_string(y + oy) + ")\n" +
-				           "Humidity:\t"    + std::to_string(h) + "\n" +
-						   "Temperature:\t" + std::to_string(t) + "\n" +
-						   "Elevation:\t"   + std::to_string(e) + "\n";
+		std::string info = 
+			"Coordinates:\t("+ std::to_string(x + ox) + ", " + std::to_string(y + oy) + ")\n" +
+			"Humidity:\t"    + std::to_string(h)  + "\n" +
+			"Temperature:\t" + std::to_string(t)  + "\n" +
+			"Elevation:\t"   + std::to_string(e)  + "\n" +
+			"X offset:\t"    + std::to_string(ox) + "\n" +
+			"Y offset:\t"    + std::to_string(oy) + "\n";
+
+		double sx = ((x + ox) / (elevScale / globalScale)), sy = ((y + oy) / (elevScale / globalScale));
+
+		info += "Sample X: " + std::to_string(sx) + "\n" +
+				"Sample Y: " + std::to_string(sy) + "\n";
 
 		return info;
+	}
+
+	// Pans view by updating origin coordinates
+	inline void pan(int lastX, int lastY, int newX, int newY) {
+		ox += (lastX - newX);
+		oy += (lastY - newY);
 	}
 
 private:
@@ -134,10 +148,10 @@ private:
 				*elevNoise;
 
 	// Scales for different terrain features
-	float humiScale = 64,
-		  tempScale = 64,
-		  elevScale = 64,
-		globalScale =  2;
+	float humiScale = 64.0,
+		  tempScale = 64.0,
+		  elevScale = 64.0,
+		globalScale =  1.5;
 
 	// Data arrays for terrain features
 	double *humidity = nullptr,
@@ -147,7 +161,7 @@ private:
 	// Amount of octaves for fractal noise
 	int fractalOctaves = 8;
 
-	inline double fractal(PerlinNoise* noise, double x, double y, int times) {
+	double fractal(PerlinNoise* noise, double x, double y, int times) {
 
 		// Track total noise value, frequency and amplitude
 		double total = 0, frequency = 1, amplitude = 1;
