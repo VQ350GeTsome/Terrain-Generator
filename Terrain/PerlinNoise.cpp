@@ -64,6 +64,6 @@ double PerlinNoise::noise(double x, double y) {
 					 grad(bb, x - 1, y - 1)
 				);
 
-	// Scale to [0, 1] and return ...
-	return (1.0 + lerp(v, x1, x2)) / 2.0;
+	// [-1, 1]
+	return lerp(v, x1, x2);
 }
