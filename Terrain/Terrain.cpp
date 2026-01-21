@@ -6,6 +6,7 @@
 #include "TerrainGenerator.h"
 
 #include <cstdint>
+#include <windowsx.h>
 
 #define MAX_LOADSTRING 100
 
@@ -39,6 +40,8 @@ LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
 void                fillTerrain(HWND);
+POINT			    scaleMouse(int, int);
+POINT   	        scaleMouse(HWND, LPARAM);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -227,6 +230,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
 
+        case WM_KEYDOWN: {
+			switch (wParam) {
+                case 'I': {
+                    // Get Mouse position
+                    POINT pt;
+                    GetCursorPos(&pt);
+                    ScreenToClient(hWnd, &pt);
+                    pt = scaleMouse(pt.x, pt.y);
+
+                    std::string info = terr.getInfo(pt.x, pt.y);
+                    MessageBoxA(hWnd, info.c_str(), "Terrain Info", MB_OK);
+                }
+            }
+        }
+        break;
+
         case WM_DESTROY:
             PostQuitMessage(0);
             break;
@@ -265,4 +284,27 @@ void fillTerrain(HWND hWnd) {
     }
 
     InvalidateRect(hWnd, NULL, FALSE);
+}
+
+// Scale mouse coordinates from client size to fractal size
+inline POINT scaleMouse(HWND hWnd, LPARAM lParam) {
+    POINT p;
+
+    p.x = GET_X_LPARAM(lParam);
+    p.y = GET_Y_LPARAM(lParam);
+
+    ScreenToClient(hWnd, &p);
+
+    p.x = p.x * width / clientWidth;
+    p.y = p.y * height / clientHeight;
+
+    return p;
+}
+inline POINT scaleMouse(int x, int y) {
+    POINT p;
+
+    p.x = x * width / clientWidth;
+    p.y = y * height / clientHeight;
+
+    return p;
 }

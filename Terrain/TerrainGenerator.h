@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <random>
+#include <string>
 
 class TerrainGenerator {
 public:
@@ -34,10 +35,15 @@ public:
 	void generateTerrain();
 
 	// Getters for terrain features
+
+	// Gets raw humidity at given coordinates
 	inline double getHumidity(int x, int y) { return humidity[y * w + x]; }
+	// Gets raw temperature at given coordinates
 	inline double getTemperature(int x, int y) { return temperature[y * w + x]; }
+	// Gets raw elevation at given coordinates
 	inline double getElevation(int x, int y) { return elevation[y * w + x];  }
 
+	// Gets the actual terrain color
 	inline uint32_t get(int x, int y) {
 		// Get terrain features and normalize to [0, 1]
 		double h = getHumidity(x, y), t = getTemperature(x, y), e = getElevation(x, y);
@@ -45,16 +51,19 @@ public:
 		t = (t + 1) / 2;
 		e = (e + 1) / 2;
 		
+		// Get base color from terrain features
 		uint32_t color = parseColor(h, t, e);
-		double s = (color >> 24) & 0xFF;
-		s /= 255; s += 0.5;
+
+		// Get randomness scale
+		double s = ((color >> 24) & 0xFF) / 255.0;
 
 		// Add some variation to brightness based on hash
-		double b = 0.95 + (hash(x, y, e * h * t) / 10.0);
+		double r = hash(x, y, h + t + e);
+		double range = 1.0 * s;
+		double b = (1 - (range / 2)) + (r * range);
 
-		return scale(color, b * s);
+		return scale(color, b);
 	}
-
 	// Use the gradient to get color based on elevation
 	inline uint32_t getGradient(int x, int y) {
 		double h = getHumidity(x, y), t = getTemperature(x, y), e = getElevation(x, y);
@@ -80,7 +89,6 @@ public:
 
 		return (0xFF << 24) | (r << 16) | (g << 8) | b;
 	}
-
 	// Simple RGB encoding of terrain features, humidity->R, temperature->G, elevation->B
 	inline uint32_t getRGB(int x, int y) {
 		double h = getHumidity(x, y), t = getTemperature(x, y), e = getElevation(x, y);
@@ -89,6 +97,22 @@ public:
 		int g = static_cast<uint8_t>(255 * t);
 		int b = static_cast<uint8_t>(255 * e);
 		return (0xFF << 24) | (r << 16) | (g << 8) | b;
+	}
+
+	// Get info string about terrain features at given coordinates
+	inline std::string getInfo(int x, int y) {
+		// Get terrain features and normalize to [0, 1]
+		double h = getHumidity(x, y), t = getTemperature(x, y), e = getElevation(x, y);
+		h = (h + 1) / 2;
+		t = (t + 1) / 2;
+		e = (e + 1) / 2;
+
+		std::string info = "Coordinates:\t(" + std::to_string(x + ox) + ", " + std::to_string(y + oy) + ")\n" +
+				           "Humidity:\t"    + std::to_string(h) + "\n" +
+						   "Temperature:\t" + std::to_string(t) + "\n" +
+						   "Elevation:\t"   + std::to_string(e) + "\n";
+
+		return info;
 	}
 
 private:
@@ -113,7 +137,7 @@ private:
 	float humiScale = 64,
 		  tempScale = 64,
 		  elevScale = 64,
-		globalScale =  1;
+		globalScale =  2;
 
 	// Data arrays for terrain features
 	double *humidity = nullptr,
@@ -176,13 +200,21 @@ private:
 
 	inline uint32_t parseColor(double h, double t, double e) {
 
-		if (e > 0.75)      { return 0x88AAAAFF; }
-		else if (e > 0.70) { return 0x88888888; }
-		else if (e > 0.65) { return 0x88888866; }
-		else if (e > 0.55) { return 0x8822AA22; }
-		else if (e > 0.50) { return 0x88AAAA22; }
-		else if (e > 0.10) { return 0x882222AA; }
-		else			   { return 0x88000099; }
+		     if (e > 0.85)	{ return 0x33EEEEEE; } // Snow caps
+		else if (e > 0.75)	{ return 0x22AAAAFF; } // Mountain peaks
+		else if (e > 0.70)	{ return 0x22888888; } // Mountain highs
+		else if (e > 0.65)	{ return 0x22888866; } // Mountain sides
+
+		else if (e > 0.60)	{ return 0x33228822; } // High lands
+		else if (e > 0.55)	{ return 0x3344AA44; } // Low lands
+
+		else if (e > 0.53)	{ return 0x2288AA88; } // Beach
+		else if (e > 0.50)	{ return 0x22AAAA22; } // Sand	
+
+		else if (e > 0.48)	{ return 0x2200AAFF; } // Shallow water
+		else if (e > 0.46)	{ return 0x226699FF; } // Ocean
+		else if (e > 0.44)	{ return 0x223366FF; } // Deep water
+		else				{ return 0x55000099; } // Deep ocean
 	}
 
 };

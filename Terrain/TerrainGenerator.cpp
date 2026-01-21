@@ -10,7 +10,7 @@ void TerrainGenerator::generateTerrain() {
 	// Generate humidity
 	for (int y = 0; h > y; y++) for (int x = 0; w > x; x++) {
 
-		double sx = ((x + ox) / humiScale), sy = ((y + oy) / humiScale);
+		double sx = ((x + ox) / (humiScale / globalScale)), sy = ((y + oy) / (humiScale / globalScale));
 
 		humidity[y * w + x] = fractal(humiNoise, sx, sy, fractalOctaves);
 	}
@@ -18,7 +18,7 @@ void TerrainGenerator::generateTerrain() {
 	// Generate temperature
 	for (int y = 0; h > y; y++) for (int x = 0; w > x; x++) {
 
-		double sx = ((x + ox) / tempScale), sy = ((y + oy) / tempScale);
+		double sx = ((x + ox) / (tempScale / globalScale)), sy = ((y + oy) / (tempScale / globalScale));
 
 		temperature[y * w + x] = fractal(tempNoise, sx, sy, fractalOctaves);
 	}
@@ -26,7 +26,7 @@ void TerrainGenerator::generateTerrain() {
 	// Generate elevation
 	for (int y = 0; h > y; y++) for (int x = 0; w > x; x++) {
 
-		double sx = ((x + ox) / elevScale), sy = ((y + oy) / elevScale);
+		double sx = ((x + ox) / (elevScale / globalScale)), sy = ((y + oy) / (elevScale / globalScale));
 
 		double continent = elevNoise->noise(sx / 8.0, sy / 8.0);
 		elevation[y * w + x] = fractal(elevNoise, sx, sy, fractalOctaves) * 0.50 + continent;
