@@ -39,12 +39,20 @@ public:
 	inline double getElevation(int x, int y) { return elevation[y * w + x];  }
 
 	inline uint32_t get(int x, int y) {
+		// Get terrain features and normalize to [0, 1]
 		double h = getHumidity(x, y), t = getTemperature(x, y), e = getElevation(x, y);
 		h = (h + 1) / 2;
 		t = (t + 1) / 2;
 		e = (e + 1) / 2;
+		
+		uint32_t color = parseColor(h, t, e);
+		double s = (color >> 24) & 0xFF;
+		s /= 255; s += 0.5;
 
-		return getGradient(x, y);
+		// Add some variation to brightness based on hash
+		double b = 0.95 + (hash(x, y, e * h * t) / 10.0);
+
+		return scale(color, b * s);
 	}
 
 	// Use the gradient to get color based on elevation
@@ -70,7 +78,6 @@ public:
 							  (tempColor & 0xFF) +
 							  (elevColor & 0xFF)) / 3);
 
-
 		return (0xFF << 24) | (r << 16) | (g << 8) | b;
 	}
 
@@ -89,6 +96,9 @@ private:
 	// Width, height
 	int w, h;
 
+	// Orgin coordinates
+	int ox = 0, oy = 0;
+
 	// Colors
 	Gradient *humiGrad = new Gradient(),
 			 *tempGrad = new Gradient(),
@@ -100,9 +110,10 @@ private:
 				*elevNoise;
 
 	// Scales for different terrain features
-	float humiScale = 16,
-		  tempScale = 16,
-		  elevScale = 16;
+	float humiScale = 64,
+		  tempScale = 64,
+		  elevScale = 64,
+		globalScale =  1;
 
 	// Data arrays for terrain features
 	double *humidity = nullptr,
@@ -127,5 +138,52 @@ private:
 		}
 		return total/ maxValue;
 	}
+
+	inline uint32_t scale(uint32_t c, double f) {
+		uint8_t r = c >> 16 & 0xFF, g = c >> 8 & 0xFF, b = c & 0xFF;
+		int nr = r * f, ng = g * f, nb = b * f;
+
+		if (nr > 255) nr = 255;
+		if (ng > 255) ng = 255;
+		if (nb > 255) nb = 255;
+
+		return (0xFF << 24) | (nr << 16) | (ng << 8) | nb;
+	}
+
+	// Hashing function so we get a brightness value
+	inline double hash(int a, int b, double v) {
+		uint64_t c;
+		memcpy(&c, &v, sizeof(double));  
+
+		uint32_t h = 0;
+		h ^= mix((uint32_t)(a));
+		h ^= mix((uint32_t)(b));
+		h ^= mix((uint32_t)(c >> 32));
+		h ^= mix((uint32_t)(c & 0xFFFFFFFF));
+
+		return (mix(h) % 100000) / 100000.0;
+	}
+
+	// A mixing function for hashing
+	inline uint32_t mix(uint32_t x) {
+		x ^= x >> 16;
+		x *= 0x51fba012;
+		x ^= x >> 15;
+		x *= 0x924da104;
+		x ^= x >> 16;
+		return x;
+	}
+
+	inline uint32_t parseColor(double h, double t, double e) {
+
+		if (e > 0.75)      { return 0x88AAAAFF; }
+		else if (e > 0.70) { return 0x88888888; }
+		else if (e > 0.65) { return 0x88888866; }
+		else if (e > 0.55) { return 0x8822AA22; }
+		else if (e > 0.50) { return 0x88AAAA22; }
+		else if (e > 0.10) { return 0x882222AA; }
+		else			   { return 0x88000099; }
+	}
+
 };
 
