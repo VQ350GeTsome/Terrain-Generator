@@ -69,15 +69,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     MSG msg;
 
     // Main message loop:
-    while (GetMessage(&msg, nullptr, 0, 0))
-    {
-        if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
-        {
+    while (GetMessage(&msg, nullptr, 0, 0)) {
+        if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg)) {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
     }
-
     return (int) msg.wParam;
 }
 
@@ -186,6 +183,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             pixels = static_cast<uint32_t*>(pixelBuffer);
             iterations = new int[width * height];
 
+            terr.toSimplex();
 			terr.generateTerrain();
             fillTerrain(hWnd);
             return 0;
@@ -270,6 +268,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
         case WM_MBUTTONUP: isPanning = false; break;
+
+        case WM_MOUSEWHEEL: {
+            double wDelta = GET_WHEEL_DELTA_WPARAM(wParam),
+            notches = wDelta / WHEEL_DELTA;
+
+            double zoomPercent = 0.334, // Percent per notch
+                   zoomFactor  = 1 + (notches * zoomPercent);
+            POINT pt = scaleMouse(hWnd, lParam);
+            terr.zoom(pt.x, pt.y, zoomFactor);    
+			fillTerrain(hWnd);
+        }
+        break;
 
         case WM_DESTROY:
             PostQuitMessage(0);

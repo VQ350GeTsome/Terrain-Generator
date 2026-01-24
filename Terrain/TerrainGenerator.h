@@ -1,6 +1,9 @@
 #pragma once
 
-#include "PerlinNoise.h"
+#include "Noise.h"
+#include "PerlinNoise2D.h"
+#include "SimplexNoise2D.h"
+
 #include "Gradient.h"
 
 #include <cstdint>
@@ -11,19 +14,22 @@
 class TerrainGenerator {
 public:
 
+	// Constructor ... seeds noise generators, & initializes gradients
 	TerrainGenerator(int width, int height) : w(width), h(height) {
 		// Initialize random number generator
 		std::mt19937 rng(std::random_device{}());
 		std::uniform_int_distribution<int> dist(-50000, 50000);
 
 		// Initialize Perlin noise generators with random seeds
-		humiNoise = new PerlinNoise(dist(rng));
-		tempNoise = new PerlinNoise(dist(rng));
-		elevNoise = new PerlinNoise(dist(rng));
+		humiNoise = new PerlinNoise2D(dist(rng));
+		tempNoise = new PerlinNoise2D(dist(rng));
+		elevNoise = new PerlinNoise2D(dist(rng));
 
 		humiGrad->setSize(256);
 		tempGrad->setSize(256);
 		elevGrad->setSize(256);
+
+		cx = w / 2; cy = h / 2;
 	}
 	~TerrainGenerator() {
 		delete humiNoise;
@@ -125,17 +131,59 @@ public:
 
 	// Pans view by updating origin coordinates
 	inline void pan(int lastX, int lastY, int newX, int newY) {
-		ox += (lastX - newX);
-		oy += (lastY - newY);
+		ox += (lastX - newX) / globalScale;
+		oy += (lastY - newY) / globalScale;
+	}
+	// Zooms view by updating global scale and origin coordinates
+	inline void zoom(int x, int y, double factor) {
+
+		// Get world coordinates before zoom
+		double worldX = ox + x / globalScale;
+		double worldY = oy + y / globalScale;
+
+		// Update global scale
+		globalScale *= factor;
+
+		// Get new origin to keep (x, y) in the same world position
+		ox = (static_cast<int>(worldX * globalScale) - x) / globalScale;
+		oy = (static_cast<int>(worldY * globalScale) - y) / globalScale;
+	}
+
+	// Switch noise generators to Simplex noise
+	inline void toSimplex() {
+		delete humiNoise;
+		delete tempNoise;
+		delete elevNoise;
+
+		std::mt19937 rng(std::random_device{}());
+		std::uniform_int_distribution<int> dist(-50000, 50000);
+
+		humiNoise = new SimplexNoise2D(dist(rng));
+		tempNoise = new SimplexNoise2D(dist(rng));
+		elevNoise = new SimplexNoise2D(dist(rng));
+	}
+	// Switch noise generators to Perlin noise
+	inline void toPerlin() {
+		delete humiNoise;
+		delete tempNoise;
+		delete elevNoise;
+
+		std::mt19937 rng(std::random_device{}());
+		std::uniform_int_distribution<int> dist(-50000, 50000);
+
+		humiNoise = new PerlinNoise2D(dist(rng));
+		tempNoise = new PerlinNoise2D(dist(rng));
+		elevNoise = new PerlinNoise2D(dist(rng));
 	}
 
 private:
 
 	// Width, height
 	int w, h;
-
 	// Orgin coordinates
 	int ox = 0, oy = 0;
+	// Camera coordinates
+	int cx, cy;
 
 	// Colors
 	Gradient *humiGrad = new Gradient(),
@@ -143,7 +191,7 @@ private:
 			 *elevGrad = new Gradient();
 
 	// Noise object	
-	PerlinNoise *humiNoise,
+	Noise *humiNoise,
 				*tempNoise,
 				*elevNoise;
 
@@ -151,7 +199,7 @@ private:
 	float humiScale = 64.0,
 		  tempScale = 64.0,
 		  elevScale = 64.0,
-		globalScale =  1.5;
+		globalScale =  0.5;
 
 	// Data arrays for terrain features
 	double *humidity = nullptr,
@@ -161,14 +209,14 @@ private:
 	// Amount of octaves for fractal noise
 	int fractalOctaves = 8;
 
-	inline double fractal(PerlinNoise* noise, double x, double y, int times) {
+	inline double fractal(Noise* noise, double x, double y, int times) {
 		// Track total noise value, frequency and amplitude
 		double total = 0, frequency = 1, amplitude = 1;
 		// Used to normalize result to [0, 1]
 		double maxValue = 0;  
 
 		for (int i = 0; i < times; i++) {
-			total += noise->noise(x * frequency, y * frequency) * amplitude;
+			total += noise->get(x * frequency, y * frequency) * amplitude;
 			maxValue += amplitude;
 			amplitude *= 0.5;
 			frequency *= 2;

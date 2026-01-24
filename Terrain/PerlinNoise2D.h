@@ -1,12 +1,13 @@
 #pragma once
 
 #include <cmath>
+#include "Noise.h"
 
-class PerlinNoise {
+class PerlinNoise2D : public Noise {
 public:
 
-	PerlinNoise(int s = 0);
-	inline double noise(double x, double y) {
+	PerlinNoise2D(int s = 0);
+	inline double get(double x, double y) {
 		// Top Left corner coordinates, then wrapped to 256
 		// to be used as index of permutation array
 		int X = fastFloor(x) & 255, Y = fastFloor(y) & 255;
@@ -43,7 +44,6 @@ public:
 private:
 
 	int p[512];
-	static const int permutation[256];
 	static const double grad2[16][2];
 
 	// Classic Perlin fade function
@@ -57,9 +57,5 @@ private:
         int h = hash & 15; 
         return grad2[h][0] * x + grad2[h][1] * y; 
 	}
-	// Quicker floor function ( skips some checks )
-	inline int fastFloor(double x) {
-		int i = (int) x; 
-		return (x < i) ? (i - 1) : i;
-	}
+	
 };
