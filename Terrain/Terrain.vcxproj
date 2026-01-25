@@ -129,7 +129,7 @@
     <ClInclude Include="Noise.h" />
     <ClInclude Include="PerlinNoise2D.h" />
     <ClInclude Include="Resource.h" />
-    <ClInclude Include="SimplexNoise2D.h" />
+    <ClInclude Include="OpenSimplexNoise2D.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="Terrain.h" />
     <ClInclude Include="TerrainGenerator.h" />
@@ -138,7 +138,7 @@
     <ClCompile Include="Gradient.cpp" />
     <ClCompile Include="Noise.cpp" />
     <ClCompile Include="PerlinNoise2D.cpp" />
-    <ClCompile Include="SimplexNoise2D.cpp" />
+    <ClCompile Include="OpenSimplexNoise2D.cpp" />
     <ClCompile Include="Terrain.cpp" />
     <ClCompile Include="TerrainGenerator.cpp" />
   </ItemGroup>

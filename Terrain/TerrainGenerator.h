@@ -2,7 +2,7 @@
 
 #include "Noise.h"
 #include "PerlinNoise2D.h"
-#include "SimplexNoise2D.h"
+#include "OpenSimplexNoise2D.h"
 
 #include "Gradient.h"
 
@@ -158,9 +158,9 @@ public:
 		std::mt19937 rng(std::random_device{}());
 		std::uniform_int_distribution<int> dist(-50000, 50000);
 
-		humiNoise = new SimplexNoise2D(dist(rng));
-		tempNoise = new SimplexNoise2D(dist(rng));
-		elevNoise = new SimplexNoise2D(dist(rng));
+		humiNoise = new OpenSimplexNoise2D(dist(rng));
+		tempNoise = new OpenSimplexNoise2D(dist(rng));
+		elevNoise = new OpenSimplexNoise2D(dist(rng));
 	}
 	// Switch noise generators to Perlin noise
 	inline void toPerlin() {

@@ -39,7 +39,7 @@
     <ClInclude Include="Noise.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="SimplexNoise2D.h">
+    <ClInclude Include="OpenSimplexNoise2D.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -56,7 +56,7 @@
     <ClCompile Include="Gradient.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="SimplexNoise2D.cpp">
+    <ClCompile Include="OpenSimplexNoise2D.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Noise.cpp">
